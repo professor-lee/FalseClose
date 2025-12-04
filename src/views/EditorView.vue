@@ -244,7 +244,21 @@ const handleMenuToggleMode = () => {
 }
 
 const handleMenuAbout = () => {
-  ElMessage.info('VueDrag Builder — 版本信息')
+  ElMessageBox.alert(
+    `
+    <div style="text-align: center;">
+      <h3>VueDrag Builder</h3>
+      <p>版本: v1.0.0</p>
+      <p>零配置的Vue3可视化开发平台</p>
+      <p>Copyright © 2025 professor-lee</p>
+    </div>
+    `,
+    '关于',
+    {
+      dangerouslyUseHTMLString: true,
+      confirmButtonText: '确定',
+    }
+  )
 }
 
 const handleMenuExport = async () => {

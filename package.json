@@ -19,12 +19,13 @@
     "electron",
     "low-code"
   ],
-  "author": "professor-lee",
+  "author": "professor-lee <18301260760@sina.cn>",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
     "@vueuse/core": "^10.7.0",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",
+    "archiver": "^7.0.1",
     "async-validator": "^4.2.5",
     "element-plus": "^2.5.0",
     "lodash-es": "^4.17.21",
