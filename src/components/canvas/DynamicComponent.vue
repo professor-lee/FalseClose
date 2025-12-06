@@ -169,6 +169,9 @@ const iconMap = {
   Setting,
 }
 
+// 组件元信息
+const componentMeta = computed(() => componentRegistry.components?.[props.component.type] || {})
+
 // 获取图标组件
 const iconComponent = computed(() => {
   const iconName = props.component.props?.name || 'Star'
@@ -195,11 +198,7 @@ const isSelected = computed(() => editorStore.selectedComponentId === props.comp
 const isHovered = computed(() => editorStore.hoveredComponentId === props.component.id)
 
 // 是否是容器组件
-const isContainer = computed(() => {
-  if (!props.component || !props.component.type) return false
-  const containerTypes = ['Container', 'Flex', 'Grid', 'Card']
-  return containerTypes.includes(props.component.type)
-})
+const isContainer = computed(() => Boolean(componentMeta.value.canHaveChildren))
 
 // 是否有子组件
 const hasChildren = computed(() => {
@@ -208,8 +207,7 @@ const hasChildren = computed(() => {
 
 // 插槽定义
 const componentSlots = computed(() => {
-  const meta = componentRegistry.components?.[props.component.type]
-  return meta?.slots || []
+  return componentMeta.value?.slots || []
 })
 
 const hasSlotLayout = computed(() => componentSlots.value && componentSlots.value.length > 0)
@@ -288,6 +286,14 @@ const componentStyles = computed(() => {
     if (!styles.gridTemplateColumns) styles.gridTemplateColumns = 'repeat(auto-fill, minmax(200px, 1fr))'
     if (!styles.gap) styles.gap = '12px'
   }
+
+  if (type === 'Form') {
+    if (!styles.padding) styles.padding = '16px'
+    if (!styles.display) styles.display = 'flex'
+    if (!styles.flexDirection) styles.flexDirection = 'column'
+    if (!styles.gap) styles.gap = '12px'
+    if (!styles.minHeight) styles.minHeight = '80px'
+  }
   
   return styles
 })
@@ -315,7 +321,8 @@ const getChildComponent = childRef => {
 
 // 点击处理
 const handleClick = (e) => {
-  if (e && props.component.type === 'Link') {
+  const isNavLike = props.component.type === 'Link' || props.component.type === 'RouterLink'
+  if (isNavLike && e?.preventDefault) {
     e.preventDefault()
   }
   e?.stopPropagation()

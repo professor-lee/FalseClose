@@ -68,7 +68,8 @@ const props = defineProps({
 const canvasStore = useCanvasStore()
 
 const componentEvents = computed(() => {
-  return Array.isArray(props.component.events) ? props.component.events : []
+  const base = Array.isArray(props.component.events) ? props.component.events : []
+  return base.map(evt => ({ ...evt, params: { ...(evt?.params || {}) } }))
 })
 
 // 页面列表 & 所有组件 (用于动作参数选择)
@@ -81,13 +82,13 @@ const allComponents = computed(() => {
 })
 
 const handleUpdateParam = (index, key, value) => {
-  const events = [...(props.component.events || [])]
+  const events = [...componentEvents.value]
   events[index] = { ...events[index], params: { ...(events[index].params || {}), [key]: value } }
   useCanvasStore().updateComponent(props.component.id, { events })
 }
 
 const handleAddEvent = () => {
-  const events = [...(props.component.events || [])]
+  const events = [...componentEvents.value]
   events.push({
     type: 'click',
     action: 'navigateTo',
@@ -98,7 +99,7 @@ const handleAddEvent = () => {
 }
 
 const handleUpdateEvent = (index, key, value) => {
-  const events = [...props.component.events]
+  const events = [...componentEvents.value]
   events[index] = {
     ...events[index],
     [key]: value,
@@ -108,7 +109,7 @@ const handleUpdateEvent = (index, key, value) => {
 }
 
 const handleRemoveEvent = index => {
-  const events = [...props.component.events]
+  const events = [...componentEvents.value]
   events.splice(index, 1)
 
   canvasStore.updateComponent(props.component.id, { events })

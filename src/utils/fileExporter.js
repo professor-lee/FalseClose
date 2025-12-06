@@ -62,6 +62,7 @@ export function generateProjectFileMap(project) {
 function generatePackageJson(project) {
   const packageName = project.name || project.projectName || 'vue-drag-app'
   const needVueUse = projectUsesVueUse(project)
+  const needDraggable = projectUsesComponent(project, ['Draggable'])
   return {
     name: packageName,
     version: '1.0.0',
@@ -77,6 +78,7 @@ function generatePackageJson(project) {
       'element-plus': '^2.5.0',
       '@element-plus/icons-vue': '^2.3.1',
       ...(needVueUse ? { '@vueuse/core': '^10.7.0' } : {}),
+      ...(needDraggable ? { 'vuedraggable': '^4.1.0' } : {}),
     },
     devDependencies: {
       '@vitejs/plugin-vue': '^5.0.0',
@@ -90,6 +92,56 @@ function generatePackageJson(project) {
 function projectUsesVueUse(project) {
   if (!project || !Array.isArray(project.pages)) return false
   return project.pages.some(page => Array.isArray(page.composables) && page.composables.some(c => c?.source === '@vueuse/core'))
+}
+
+function projectUsesComponent(project, types = []) {
+  if (!project || !Array.isArray(project.pages)) return false
+  const typeSet = new Set(types)
+
+  const hasType = (nodes = []) => {
+    if (!Array.isArray(nodes)) return false
+    for (const node of nodes) {
+      if (!node) continue
+      if (typeSet.has(node.type)) return true
+      if (hasType(node.children)) return true
+    }
+    return false
+  }
+
+  return project.pages.some(page => hasType(resolveComponentTree(page)))
+}
+
+function resolveComponentTree(page = {}) {
+  if (Array.isArray(page.components)) {
+    return page.components
+  }
+  if (!Array.isArray(page.componentTree)) return []
+
+  const map = new Map()
+  page.componentTree.forEach(comp => {
+    map.set(comp.id, { ...comp, children: [] })
+  })
+
+  page.componentTree.forEach(comp => {
+    const node = map.get(comp.id)
+    const childIds = Array.isArray(comp.children) ? comp.children : []
+    childIds.forEach(cid => {
+      const childNode = map.get(cid)
+      if (node && childNode) {
+        node.children.push(childNode)
+      }
+    })
+  })
+
+  const roots = []
+  const rootIds = Array.isArray(page.rootOrder) && page.rootOrder.length
+    ? page.rootOrder
+    : page.componentTree.filter(c => !c.parentId).map(c => c.id)
+  rootIds.forEach(id => {
+    const node = map.get(id)
+    if (node) roots.push(node)
+  })
+  return roots
 }
 
 /**

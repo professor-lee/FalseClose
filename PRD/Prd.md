@@ -1,3 +1,94 @@
+# V1.5.4 更新日志 (2025-12-06) — 拖拽组件库全面对齐 changeDoc
+
+## 1. 需求与范围（保持非相关模块不变）
+- 依据 `changeDoc.md` 对拖拽组件库进行一次性梳理与对齐，覆盖：
+  - 原子组件 20 类（Button/Input/Select/.../Form）。
+  - Vue3 特性拖拽组件（Draggable/TransitionGroup/Teleport/Suspense 等包装）。
+  - 可复用 `.vue` 组件、`RouterLink`、`RouterView` 占位能力。
+- 目标：组件库清单、元数据、拖拽渲染、属性面板、代码生成保持一致，新增能力默认兼容旧项目；未声明/未使用功能保持旧行为。
+- 不触碰：逻辑编排、导出路由 Hash 方案、历史交互修复、代码模式等非组件库模块。
+
+## 2. ASCII 原型
+### 2.1 组件库分区与拖拽流
+```text
+左侧组件库 (分区)           画布渲染管线 (不改逻辑模块)
+┌───────────────┐        ┌─────────────────────────┐
+│ 原子组件      │ drag → │ componentRegistry (meta) │
+│ Vue3拖拽特性  │        └──────────┬──────────────┘
+│ 可复用 .vue   │                   │
+│ 路由组件      │                   v
+└───────────────┘        ┌─────────────────────────┐
+                         │ Canvas Renderer         │
+                         │ - slots 渲染/折叠        │
+                         │ - 事件/样式透传         │
+                         └──────────┬──────────────┘
+                                    v
+                         ┌─────────────────────────┐
+                         │ Export Generator (SFC)  │
+                         │ - 模板/脚本/样式导出     │
+                         └─────────────────────────┘
+```
+
+### 2.2 元数据驱动的组件定义
+```text
+componentRegistry.js (示例: Button)
+{ id: 'button',
+  group: 'atomic',
+  props: { text, type, icon, loading, disabled },
+  styles: { bg, color, radius, padding, shadow },
+  events: ['click','dblclick','mouseenter','mouseleave','focus','blur'],
+  slots: [],
+  render: <BaseButton ...>,
+  codegen: { import: 'BaseButton', package: 'local' }
+}
+```
+
+### 2.3 渲染结构（容器与 Teleport/Suspense 包装）
+```text
+Canvas Node
+┌──────────────────────────────┐
+│ DynamicComponent             │
+│ ├─ slots: header/default/footer (按需渲染) │
+│ ├─ Draggable wrapper (sortable)           │
+│ ├─ Teleport? -> body/#target (可选)       │
+│ └─ Suspense? -> default/fallback (可选)   │
+└──────────────────────────────┘
+```
+
+## 3. 技术方案与影响点
+- 元数据/注册表：
+  - `componentRegistry.js` 对齐 changeDoc 全量清单；为每类补齐 `props/styles/events/slots`；新增组别字段 `group`（atomic/vue3/route/reuse）。
+  - 新增/复用基础渲染组件（Button/Input/.../Form/Draggable/Teleport/Suspense/RouterLink/RouterView）。
+- 画布渲染：
+  - `DynamicComponent` 保持现有插槽折叠策略，扩展对新的 props/styles 透传；Teleport/Suspense 仅在节点声明时包裹，默认不启用，避免影响旧节点。
+  - 拖拽排序仍由已有 `useDragAndDrop`/`vuedraggable` 实现，封装新增 Draggable 清单但不改内部逻辑。
+- 属性面板：
+  - 使用元数据驱动展示 props/styles/events 列表；新增事件绑定项（如 input/change/start/end 等）。
+  - 未在元数据声明的字段不露出，避免对旧组件产生额外配置项。
+- 代码生成：
+  - `codeGenerator.js`/`fileExporter.js` 读取最新元数据生成模板；新增的组件生成 import 与模板；未声明 slotName/特性时保持旧输出。
+  - Teleport/Suspense/Router 组件按显式节点生成，默认不写入。
+- 兼容性与保护：
+  - 旧项目：缺省字段回退到默认值；未声明 group 的旧组件自动归类为 `legacy`，渲染逻辑不变。
+  - 不修改逻辑模块、状态栏、代码模式、导出路由 Hash 方案。
+
+## 4. 开发 Todo（顺序执行，完毕需自检）
+1) 注册表对齐：补齐 20 个原子组件 + 4 个 Vue3 特性组件 + 2 个路由组件 + 1 可复用组件占位，新增 group/props/styles/events/slots 元数据。
+2) 基础渲染组件检查：确认 `src/components` 下已有可复用的基础渲染件；缺失则补充轻量封装（仅 props/样式透传）。
+3) 画布渲染扩展：`DynamicComponent` 支持新元数据字段映射，保持插槽折叠/拖拽逻辑不变；Teleport/Suspense 受节点配置控制。
+4) 属性面板对齐：基于元数据渲染配置分组（内容/样式/事件），不改逻辑面板；事件绑定列表与元数据同步。
+5) 代码生成与导出：更新生成器覆盖新增组件，默认值回退；Hash 路由方案保持。
+6) 回归自检：
+   - 旧项目打开/渲染/导出不变；
+   - 新组件拖入、属性/样式/事件绑定可用；
+   - Teleport/Suspense/RouterLink/RouterView 仅在显式使用时输出；
+   - 插槽折叠、逻辑编排、代码模式均无回归。
+
+## 5. 不影响性检查
+- 默认场景不启用 Teleport/Suspense/路由占位，旧项目表现一致。
+- 未声明 slots 的组件仍按旧 children 渲染；新 slots 仅在元数据定义后启用。
+- 逻辑模块、状态栏、代码模式、导出 Hash 路由保持现状。
+
 # V1.5.3 更新日志 (2025-12-06) — 导出构建修复
 
 ## 1. 问题描述

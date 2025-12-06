@@ -175,7 +175,6 @@ const {
 const showCanvasSettings = ref(false)
 
 const handleViewChange = (view) => {
-  editorStore.setMode(view)
   emit('toggle-view', view)
 }
 

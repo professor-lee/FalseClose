@@ -58,6 +58,9 @@ export function generateTemplate(components, logicResolver) {
  * @returns {Array} template 行数组
  */
 function generateComponentTemplate(component, indent = 0, logicResolver) {
+  if (!component || !component.type) {
+    return []
+  }
   const lines = []
   const indentStr = '  '.repeat(indent)
   
@@ -129,19 +132,34 @@ function getTemplateTagName(type) {
     'Flex': 'div',
     'Grid': 'div',
     'Card': 'el-card',
+    'Form': 'el-form',
     'Button': 'el-button',
     'Text': 'span',
     'Heading': 'h2',
     'Image': 'el-image',
     'Divider': 'el-divider',
     'Link': 'el-link',
+    'Icon': 'el-icon',
     'Input': 'el-input',
+    'Textarea': 'el-input',
     'Select': 'el-select',
     'Checkbox': 'el-checkbox',
     'Radio': 'el-radio',
     'Switch': 'el-switch',
+    'Slider': 'el-slider',
     'Teleport': 'teleport',
     'Suspense': 'Suspense',
+    'Tabs': 'el-tabs',
+    'Accordion': 'el-collapse',
+    'Table': 'el-table',
+    'DatePicker': 'el-date-picker',
+    'TimePicker': 'el-time-picker',
+    'Upload': 'el-upload',
+    'Draggable': 'Draggable',
+    'TransitionGroup': 'TransitionGroup',
+    'RouterLink': 'RouterLink',
+    'RouterView': 'RouterView',
+    'Reusable': 'component',
   }
   return tagMap[type] || 'div'
 }
@@ -278,6 +296,7 @@ export function generateScript(components, page = {}, project = {}) {
   
   const hasNavigation = checkHasNavigation(components)
   if (hasNavigation) usedImports.add('useRouter')
+  const needsDraggable = hasComponentType(components, ['Draggable'])
   
   // 生成 Import 语句
   const vueImports = []
@@ -306,6 +325,10 @@ export function generateScript(components, page = {}, project = {}) {
   composableImports.forEach((names, source) => {
     lines.push(`import { ${Array.from(names).join(', ')} } from '${source}'`)
   })
+
+  if (needsDraggable) {
+    lines.push("import Draggable from 'vuedraggable'")
+  }
   
   lines.push('')
   
@@ -391,6 +414,18 @@ function checkHasNavigation(components) {
     if (component.children && component.children.length > 0) {
       if (checkHasNavigation(component.children)) return true
     }
+  }
+  return false
+}
+
+function hasComponentType(components, types = []) {
+  if (!Array.isArray(components)) return false
+  const typeSet = new Set(types)
+
+  for (const component of components) {
+    if (!component) continue
+    if (typeSet.has(component.type)) return true
+    if (component.children && hasComponentType(component.children, types)) return true
   }
   return false
 }
@@ -527,22 +562,35 @@ function buildLogicResolver(composables = []) {
 
 function resolveComponentTree(page = {}) {
   if (Array.isArray(page.components)) {
-    return cloneDeep(page.components)
+    return cloneDeep(page.components).filter(c => c && c.type)
   }
   if (!Array.isArray(page.componentTree)) return []
 
+  // 仅保留合法组件
+  const validComponents = page.componentTree.filter(c => c && c.id && c.type)
+
   const map = new Map()
-  page.componentTree.forEach(comp => {
+  validComponents.forEach(comp => {
     map.set(comp.id, { ...cloneDeep(comp), children: [] })
   })
 
-  page.componentTree.forEach(comp => {
+  validComponents.forEach(comp => {
     const node = map.get(comp.id)
-    const childIds = Array.isArray(comp.children) ? comp.children : []
-    childIds.forEach(cid => {
-      const childNode = map.get(cid)
-      if (node && childNode) {
-        node.children.push(childNode)
+    if (!node) return
+    const childRefs = Array.isArray(comp.children) ? comp.children : []
+    childRefs.forEach(ref => {
+      if (!ref) return
+      // 支持 id 引用或直接嵌入的子对象
+      if (typeof ref === 'string' || typeof ref === 'number') {
+        const childNode = map.get(ref)
+        if (childNode) node.children.push(childNode)
+      } else if (typeof ref === 'object' && ref.id && ref.type) {
+        // 如果嵌入了完整对象但未在 map 中，补充一次
+        if (!map.has(ref.id)) {
+          map.set(ref.id, { ...cloneDeep(ref), children: [] })
+        }
+        const childNode = map.get(ref.id)
+        if (childNode) node.children.push(childNode)
       }
     })
   })
@@ -550,7 +598,7 @@ function resolveComponentTree(page = {}) {
   const roots = []
   const rootIds = Array.isArray(page.rootOrder) && page.rootOrder.length
     ? page.rootOrder
-    : page.componentTree.filter(c => !c.parentId).map(c => c.id)
+    : validComponents.filter(c => !c.parentId).map(c => c.id)
   rootIds.forEach(id => {
     const node = map.get(id)
     if (node) roots.push(node)

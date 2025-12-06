@@ -6,7 +6,7 @@
     <!-- 主要内容区域 -->
     <div class="editor-main">
       <!-- 可视化编辑模式 -->
-      <template v-if="editorStore.mode === 'visual'">
+      <div v-show="editorStore.mode === 'visual'" class="visual-mode">
         <!-- 左侧面板 -->
         <section 
           class="pane left-pane" 
@@ -57,15 +57,15 @@
         >
           <RightPanel v-show="!isRightCollapsed" />
         </section>
-      </template>
+      </div>
 
       <!-- 代码编辑模式 -->
-      <template v-else>
+      <div v-show="editorStore.mode === 'code'" class="code-mode">
         <div class="code-container">
-          <CodeEditor style="flex: 1; min-height: 0;" />
+          <CodeEditor ref="codeEditorRef" style="flex: 1; min-height: 0;" />
           <BottomPanel v-if="editorStore.terminalVisible" class="panel-in-code" />
         </div>
-      </template>
+      </div>
     </div>
 
     <!-- 状态栏 -->
@@ -98,6 +98,7 @@ const router = useRouter()
 const projectStore = useProjectStore()
 const historyStore = useHistoryStore()
 const editorStore = useEditorStore()
+const codeEditorRef = ref(null)
 const {
   exportSourceFolder,
   exportSourceZip,
@@ -117,7 +118,18 @@ const isResizing = ref(false)
 const resizeTarget = ref(null) // 'left' or 'right'
 
 // 切换视图模式
-const handleToggleView = (view) => {
+const handleToggleView = async (view) => {
+  if (view === editorStore.mode) return
+
+  // 离开代码模式前将代码同步到画布，避免修改丢失
+  if (editorStore.mode === 'code' && view === 'visual' && codeEditorRef.value?.syncToCanvasBeforeLeave) {
+    const success = await codeEditorRef.value.syncToCanvasBeforeLeave()
+    if (!success) {
+      ElMessage.error('代码模式内容同步失败，请修复代码后重试')
+      return
+    }
+  }
+
   editorStore.setMode(view)
   if (view === 'code') {
     editorStore.closeLogicBoard()
@@ -244,8 +256,9 @@ const handleMenuSaveAs = async () => {
   await projectStore.saveProject()
 }
 
-const handleMenuToggleMode = () => {
-  editorStore.toggleMode()
+const handleMenuToggleMode = async () => {
+  const targetMode = editorStore.mode === 'visual' ? 'code' : 'visual'
+  await handleToggleView(targetMode)
 }
 
 const handleMenuAbout = () => {
@@ -388,6 +401,7 @@ const handleKeydown = e => {
   display: flex;
   flex-direction: column;
   background-color: var(--vscode-bg);
+  overflow: hidden;
 }
 
 .editor-main {
@@ -396,6 +410,7 @@ const handleKeydown = e => {
   background-color: var(--vscode-bg);
   overflow: hidden;
   position: relative;
+  min-width: 0;
 }
 
 .pane {
@@ -406,6 +421,14 @@ const handleKeydown = e => {
   transition: width 0.1s ease-out;
 }
 
+.visual-mode,
+.code-mode {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
 .left-pane {
   background-color: var(--vscode-sidebar-bg);
   border-right: 1px solid var(--vscode-border);
@@ -413,11 +436,12 @@ const handleKeydown = e => {
 
 .center-pane {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   background-color: var(--vscode-editor-bg);
-  min-height: 0;
+  overflow: auto;
   min-width: 0; /* 防止 flex 子项溢出 */
 }
 

@@ -82,7 +82,7 @@
               <iframe
                 ref="previewFrame"
                 class="preview-iframe"
-                sandbox="allow-scripts allow-same-origin allow-modals"
+                sandbox="allow-scripts allow-modals"
                 :srcdoc="previewSrcDoc"
               ></iframe>
               <!-- 遮罩层，防止拖拽时事件被 iframe 捕获 -->
@@ -96,7 +96,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useCanvasStore } from '@/stores/canvas'
 import { useProjectStore } from '@/stores/project'
 import { useEditorStore } from '@/stores/editor'
@@ -135,6 +135,11 @@ self.MonacoEnvironment = {
 const canvasStore = useCanvasStore()
 const projectStore = useProjectStore()
 const editorStore = useEditorStore()
+
+// 代码同步状态
+const hasDirtyCode = ref(false)
+const pendingCanvasPull = ref(false)
+let applyingCanvasToCode = false
 
 // --- 预览交互状态 ---
 const isPanning = ref(false)
@@ -604,7 +609,16 @@ const buildPageSnapshot = () => {
   }
 }
 
-const syncFromCanvas = (showToast = true) => {
+const syncFromCanvas = (showToast = true, options = { force: true, fromCanvas: false }) => {
+  const force = options?.force ?? true
+  const fromCanvas = options?.fromCanvas ?? false
+
+  // 当代码有未保存的修改时，来自画布的被动同步会跳过，避免覆盖
+  if (fromCanvas && !force && hasDirtyCode.value) {
+    pendingCanvasPull.value = true
+    return
+  }
+
   const pageSnapshot = buildPageSnapshot()
   if (!pageSnapshot) {
     if (showToast) {
@@ -614,18 +628,25 @@ const syncFromCanvas = (showToast = true) => {
   }
 
   const code = generateVueSFC(pageSnapshot, buildProjectContext())
+  lastSyncedCode.value = code
+  pendingCanvasPull.value = false
+
   if (!editor) {
-    lastSyncedCode.value = code
+    updatePreview(code)
+    hasDirtyCode.value = false
     return
   }
 
-  if (code !== lastSyncedCode.value) {
+  if (force || code !== editor.getValue()) {
+    applyingCanvasToCode = true
     editor.setValue(code)
-    lastSyncedCode.value = code
+    applyingCanvasToCode = false
     updatePreview(code)
   } else if (viewMode.value !== 'code') {
     updatePreview(code)
   }
+
+  hasDirtyCode.value = false
 
   if (showToast) {
     ElMessage.success('已从画布同步代码')
@@ -633,11 +654,15 @@ const syncFromCanvas = (showToast = true) => {
 }
 
 // 反向同步：代码 -> 画布
-const syncToCanvas = async (silent = false) => {
-  if (!editor) return
+const syncToCanvas = async (options = {}) => {
+  const normalized = typeof options === 'boolean' ? { prompt: !options, silent: options } : options
+  const prompt = normalized?.prompt !== false
+  const silent = !!normalized?.silent
+
+  if (!editor) return false
   
   try {
-    if (!silent) {
+    if (prompt) {
       await ElMessageBox.confirm(
         '这将覆盖当前画布上的所有组件。此功能为实验性功能，仅支持基础结构同步。确定要继续吗？',
         '同步到画布',
@@ -898,11 +923,20 @@ const syncToCanvas = async (silent = false) => {
     const currentPage = canvasStore.currentPage
     if (currentPage) {
       currentPage.componentTree = flatComponents
-      canvasStore.currentPageId = currentPage.id // 触发更新
+      currentPage.rootOrder = flatComponents
+        .filter(c => !c.parentId)
+        .map(c => c.id)
+      canvasStore.pages = [...canvasStore.pages]
+      canvasStore.currentPageId = currentPage.id
+      hasDirtyCode.value = false
+      pendingCanvasPull.value = false
+      lastSyncedCode.value = code
       if (!silent) {
         ElMessage.success('同步成功')
       }
     }
+
+    return true
 
   } catch (error) {
     if (error !== 'cancel') {
@@ -911,6 +945,7 @@ const syncToCanvas = async (silent = false) => {
         ElMessage.error(`同步失败: ${error.message}`)
       }
     }
+    return false
   }
 }
 
@@ -976,6 +1011,12 @@ onMounted(() => {
 
     editor.onDidChangeModelContent(() => {
       const code = editor.getValue()
+      if (!applyingCanvasToCode) {
+        hasDirtyCode.value = code !== lastSyncedCode.value
+        if (pendingCanvasPull.value && !hasDirtyCode.value) {
+          syncFromCanvas(false, { force: true, fromCanvas: true })
+        }
+      }
       if (viewMode.value !== 'code') {
         updatePreview(code)
       }
@@ -987,11 +1028,11 @@ onMounted(() => {
     })
 
     nextTick(() => {
-      syncFromCanvas(false)
+      syncFromCanvas(false, { force: true })
     })
 
     unsubscribeCanvas = canvasStore.$subscribe(() => {
-      syncFromCanvas(false)
+      syncFromCanvas(false, { force: false, fromCanvas: true })
     })
     
     // 监听 iframe 消息
@@ -1024,10 +1065,19 @@ watch(viewMode, (newMode) => {
   }
 })
 
+const syncToCanvasBeforeLeave = async () => {
+  return await syncToCanvas({ prompt: false, silent: true })
+}
+
+defineExpose({
+  syncToCanvasBeforeLeave,
+  syncToCanvas,
+})
+
 onBeforeUnmount(async () => {
   // 自动同步代码到画布 (防止修改丢失)
   if (editor) {
-    await syncToCanvas(true)
+    await syncToCanvas({ prompt: false, silent: true })
     editor.dispose()
   }
   if (typeof unsubscribeCanvas === 'function') {
