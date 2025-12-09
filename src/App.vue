@@ -17,7 +17,7 @@ const handleMenuAbout = () => {
       <h3 style="margin-bottom: 16px; font-size: 16px;">关于</h3>
       <img src="icon/icon.svg" alt="Logo" style="height: 64px; margin-bottom: 16px;">
       <h3>VueDrag Builder</h3>
-      <p>版本: v1.5.3</p>
+      <p>版本: v1.5.4</p>
       <p>零配置的 Vue3 可视化前端搭建平台</p>
       <p>Copyright © 2025 professor-lee</p>
     </div>

@@ -1,7 +1,7 @@
 {
   "name": "vue-drag-builder",
-  "version": "1.5.3",
-  "description": "零配置的Vue3可视化开发平台",
+  "version": "1.5.4",
+  "description": "零配置的 Vue3 可视化前端搭建平台",
   "main": "electron/main.js",
   "type": "module",
   "scripts": {
@@ -10,6 +10,9 @@
     "preview": "vite preview",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && node scripts/start-electron.js\"",
     "electron:build": "vite build && electron-builder",
+    "electron:build:win": "vite build && USE_HARD_LINKS=false electron-builder --win --config.win.sign=null",
+    "electron:build:linux": "vite build && USE_HARD_LINKS=false electron-builder --linux",
+    "electron:build:all": "vite build && USE_HARD_LINKS=false electron-builder --linux",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
     "format": "prettier --write src/"
   },
@@ -64,7 +67,6 @@
   "build": {
     "appId": "com.vuedragbuilder.app",
     "productName": "VueDrag Builder",
-    "icon": "public/icon/icon.svg",
     "directories": {
       "output": "dist-electron"
     },
@@ -74,6 +76,7 @@
       "package.json"
     ],
     "mac": {
+      "icon": "public/icon/icon.icns",
       "category": "public.app-category.developer-tools",
       "target": [
         "dmg",
@@ -81,12 +84,23 @@
       ]
     },
     "win": {
+      "icon": "public/icon/icon.ico",
       "target": [
-        "nsis",
-        "zip"
-      ]
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["x64"]
+        }
+      ],
+      "requestedExecutionLevel": "asInvoker",
+      "verifyUpdateCodeSignature": false,
+      "sign": null
     },
     "linux": {
+      "icon": "public/icon/icon.png",
       "target": [
         "AppImage",
         "deb"
