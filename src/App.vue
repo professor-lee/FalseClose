@@ -3,14 +3,47 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import { useProjectStore } from '@/stores/project'
+import { ElMessageBox } from 'element-plus'
 
 const projectStore = useProjectStore()
+let cleanupAbout = null
+
+const handleMenuAbout = () => {
+  ElMessageBox.alert(
+    `
+    <div style="text-align: center;">
+      <h3 style="margin-bottom: 16px; font-size: 16px;">关于</h3>
+      <img src="icon/icon.svg" alt="Logo" style="height: 64px; margin-bottom: 16px;">
+      <h3>VueDrag Builder</h3>
+      <p>版本: v1.5.3</p>
+      <p>零配置的 Vue3 可视化前端搭建平台</p>
+      <p>Copyright © 2025 professor-lee</p>
+    </div>
+    `,
+    '',
+    {
+      dangerouslyUseHTMLString: true,
+      showConfirmButton: false,
+      customClass: 'about-dialog',
+      center: true,
+      showClose: true,
+    }
+  )
+}
 
 onMounted(() => {
   // 加载最近项目列表
   projectStore.loadRecentProjects()
+
+  if (window.electron) {
+    cleanupAbout = window.electron.onMenuAbout(handleMenuAbout)
+  }
+})
+
+onUnmounted(() => {
+  if (cleanupAbout) cleanupAbout()
 })
 </script>
 
@@ -201,5 +234,39 @@ body,
 /* Empty State */
 .el-empty__description {
   color: var(--vscode-fg-muted);
+}
+
+/* About Dialog */
+.about-dialog {
+  background-color: var(--vscode-bg) !important;
+  border: 1px solid var(--vscode-border) !important;
+  --el-bg-color: var(--vscode-bg) !important;
+  --el-text-color-primary: var(--vscode-fg) !important;
+}
+
+.about-dialog .el-message-box__header {
+  padding: 10px 15px;
+  border-bottom: none;
+}
+
+.about-dialog .el-message-box__title {
+  display: none;
+}
+
+.about-dialog .el-message-box__headerbtn {
+  top: 10px;
+  right: 10px;
+}
+
+.about-dialog .el-message-box__headerbtn .el-message-box__close {
+  color: var(--vscode-fg) !important;
+}
+
+.about-dialog .el-message-box__headerbtn:hover .el-message-box__close {
+  color: var(--vscode-fg) !important;
+}
+
+.about-dialog .el-message-box__content {
+  color: var(--vscode-fg) !important;
 }
 </style>

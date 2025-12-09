@@ -111,7 +111,7 @@ export function createMenu(mainWindow) {
         {
           label: '文档',
           click: async () => {
-            await shell.openExternal('https://github.com/professor-lee/FalseClose')
+            await shell.openExternal('https://github.com/professor-lee/VueDrag-Builder')
           },
         },
         {

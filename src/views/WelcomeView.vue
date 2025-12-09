@@ -2,7 +2,7 @@
   <div class="welcome-view">
     <div class="welcome-header">
       <h1>VueDrag Builder</h1>
-      <p>零配置的Vue3可视化开发平台</p>
+      <p>零配置的 Vue3 可视化前端搭建平台</p>
     </div>
 
     <div class="welcome-content">
@@ -17,7 +17,7 @@
             新建项目
           </el-button>
 
-          <el-button size="large" @click="handleOpenProject">
+          <el-button class="open-project" size="large" @click="handleOpenProject">
             <el-icon><FolderOpened /></el-icon>
             打开项目
           </el-button>
@@ -67,7 +67,6 @@
           <el-input
             v-model="newProjectForm.path"
             placeholder="请选择或新建一个空目录"
-            readonly
           >
             <template #append>
               <el-button @click="handleSelectFolder">选择</el-button>
@@ -230,13 +229,24 @@ const handleOpenRecentProject = async path => {
   display: flex;
   gap: 24px;
   max-width: 1000px;
+  align-items: stretch;
 }
 
 .action-card,
 .recent-card {
+  flex: 1;
   min-width: 400px;
   background-color: var(--vscode-sidebar-bg);
   border: 1px solid var(--vscode-border);
+  display: flex;
+  flex-direction: column;
+}
+
+.action-card :deep(.el-card__body),
+.recent-card :deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .action-card :deep(.el-card__header),
@@ -253,6 +263,13 @@ const handleOpenRecentProject = async path => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  align-items: center;
+  align-self: center;
+  width: 100%;
+}
+
+.open-project {
+  margin-left: -0.1vw;
 }
 
 .actions .el-button {
@@ -267,7 +284,13 @@ const handleOpenRecentProject = async path => {
 .actions .el-button .el-icon {
   margin-right: 12px;
   font-size: 18px;
+  width: 24px;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
+
 
 .recent-list {
   display: flex;

@@ -14,9 +14,9 @@
   <img src="https://img.shields.io/badge/Vite-6.0%2B-646CFF?logo=vite&logoColor=white" alt="Vite">
   <img src="https://img.shields.io/badge/Element_Plus-2.5%2B-409EFF?logo=element-plus&logoColor=white" alt="Element Plus">
   <img src="https://img.shields.io/badge/License-AGPL--3.0-blue" alt="License">
+  <img src="https://img.shields.io/github/stars/professor-lee/VueDrag-Builder?style=flat&label=Stars&color=FFC700&logo=github&logoColor=white" alt="Stars">
 </p>
 
----
 
 <h2 align="center">📋 项目概述</h2>
 
@@ -24,7 +24,6 @@
 
 它不仅支持直观的**组件拖拽**、**属性/样式可视化编辑**和**事件编排**，更核心的是实现了**双向代码同步**——你既可以在画布上自由创作，也可以直接编辑生成的源代码，两者实时互通。最终，你可以将项目导出为标准的 Vue3 工程代码，或直接生成构建后的产物。
 
----
 
 <h2 align="center">✨ 已有功能</h2>
 
@@ -36,13 +35,10 @@
 - **💾 自动保存与历史记录**：支持项目自动保存，以及完善的撤销/重做（Undo/Redo）功能。
 - **📤 灵活导出**：支持导出 Vue3 源码工程，或直接构建生成 dist 产物。
 
----
 
 <h2 align="center">🕹️ 技术栈</h2>
 
-我们采用了最新的前端技术栈来构建这个高性能的桌面应用：
-
-- **桌面运行时**: [Electron](https://www.electronjs.org/) 39+
+- **桌面运行**: [Electron](https://www.electronjs.org/) 39+
 - **前端框架**: [Vue](https://vuejs.org/) 3.4+
 - **构建工具**: [Vite](https://vitejs.dev/) 6+
 - **状态管理**: [Pinia](https://pinia.vuejs.org/) 2.1+
@@ -51,7 +47,6 @@
 - **拖拽库**: [SortableJS](https://sortablejs.github.io/Sortable/) / VueDraggable
 - **AST 转换**: [Recast](https://github.com/benjamn/recast) (用于代码生成与解析)
 
----
 
 <h2 align="center">🛠️ 开发环境设置</h2>
 
@@ -75,7 +70,6 @@ npm run electron:dev
 npm run electron:build
 ```
 
----
 
 <h2 align="center">📂 项目结构</h2>
 
@@ -122,7 +116,6 @@ vue-drag-builder/
 └── vite.config.js
 ```
 
----
 
 <h2 align="center">⌨️ 快捷键</h2>
 
@@ -141,7 +134,6 @@ vue-drag-builder/
 | **画布缩放** | `Ctrl + 滚轮` | `Cmd + 滚轮` |
 | **画布平移** | `Space + 拖拽` | `Space + 拖拽` |
 
----
 
 <h2 align="center">🗺️ 路线图</h2>
 
@@ -158,7 +150,6 @@ vue-drag-builder/
 - [ ] 🧩 **插件系统**
 - [ ] ☁️ **云端存储与分享**
 
----
 
 <h3>🤝 贡献</h3>
 
@@ -167,4 +158,4 @@ vue-drag-builder/
 
 <h3>⚖️ 许可证</h3>
 
-[AGPL-3.0](LICENSE)
+[AGPL-3.0 license](LICENSE)

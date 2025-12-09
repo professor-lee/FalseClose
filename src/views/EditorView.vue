@@ -261,24 +261,6 @@ const handleMenuToggleMode = async () => {
   await handleToggleView(targetMode)
 }
 
-const handleMenuAbout = () => {
-  ElMessageBox.alert(
-    `
-    <div style="text-align: center;">
-      <h3>VueDrag Builder</h3>
-      <p>版本: v1.5.3</p>
-      <p>零配置的Vue3可视化开发平台</p>
-      <p>Copyright © 2025 professor-lee</p>
-    </div>
-    `,
-    '关于',
-    {
-      dangerouslyUseHTMLString: true,
-      confirmButtonText: '确定',
-    }
-  )
-}
-
 const handleMenuExport = async () => {
   await promptExportType()
 }
@@ -348,7 +330,6 @@ const setupMenuListeners = () => {
     cleanupFunctions.push(window.electron.onMenuSaveAs(handleMenuSaveAs))
     cleanupFunctions.push(window.electron.onMenuExport(handleMenuExport))
     cleanupFunctions.push(window.electron.onMenuToggleMode(handleMenuToggleMode))
-    cleanupFunctions.push(window.electron.onMenuAbout(handleMenuAbout))
     cleanupFunctions.push(window.electron.onMenuUndo(handleMenuUndo))
     cleanupFunctions.push(window.electron.onMenuRedo(handleMenuRedo))
   }

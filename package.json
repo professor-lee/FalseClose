@@ -64,6 +64,7 @@
   "build": {
     "appId": "com.vuedragbuilder.app",
     "productName": "VueDrag Builder",
+    "icon": "public/icon/icon.svg",
     "directories": {
       "output": "dist-electron"
     },
